@@ -13,7 +13,7 @@ loadSprite("lich", "HORUS-LICH.png")
 // globals
 let curDraggin = null
 let justStartedDraggin = true
-let curScale = 0.5
+let curScale = 2
 let camDragStartWorld = null
 let camDragStartScreen = null
 let hexTop = 1
@@ -162,7 +162,7 @@ function hexgrid(r, h, w) {
                         drawPolygon({
                             pos : vec2(hexX(x,y,r),hexY(x,y,r)),
                             pts : hexpts,
-                            //outline,
+                            outline,
                             color: colors[x+y*w],
                         })
                         //drawLines({
