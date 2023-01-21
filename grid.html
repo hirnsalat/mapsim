@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<script type="module">
+
+// import kaboom lib
+import kaboom from "./kaboom.mjs";
+
+// initialize kaboom context
+kaboom();
+
+// load shit
+loadSprite("lich", "HORUS-LICH.png")
+
+// globals
+let curDraggin = null
+let justStartedDraggin = true
+let curScale = 0.5
+let camDragStartWorld = null
+let camDragStartScreen = null
+let hexTop = 1
+let hexRight = Vec2.fromAngle(30).x
+let hexRightUp = Vec2.fromAngle(30).y
+
+// A custom component for handling drag & drop behavior
+function drag() {
+
+    // The displacement between object pos and mouse pos
+    let offset = vec2(0)
+
+    return {
+        // Name of the component
+        id: "drag",
+        // This component requires the "pos" and "area" component to work
+        require: [ "pos", "area", ],
+        // "add" is a lifecycle method gets called when the obj is added to scene
+        add() {
+            // TODO: these need to be checked in reverse order
+            // "this" in all methods refer to the obj
+            this.onClick(() => {
+                if (curDraggin) {
+                    return
+                }
+                curDraggin = this
+                offset = toWorld(mousePos()).sub(this.pos)
+                // Remove the object and re-add it, so it'll be drawn on top
+                readd(this)
+            })
+        },
+        // "update" is a lifecycle method gets called every frame the obj is in scene
+        update() {
+            if (curDraggin === this) {
+                // cursor("move")
+                this.pos = toWorld(mousePos()).sub(offset)
+            }
+        },
+    }
+
+}
+
+function slot() {
+    return {
+        add() {
+            // TODO: these need to be checked in reverse order
+            // "this" in all methods refer to the obj
+            this.onClick(() => {
+                if (curDraggin != null && ! justStartedDraggin) {
+                    curDraggin.pos = this.pos
+                    curDraggin = null
+                }
+            })
+        },
+    }
+}
+
+function hexWidth(r) {
+    return r * hexRight * 2
+}
+
+function hex(r) {
+    let w = hexWidth(r)
+    return {
+        width : w,
+        height : r*2,
+        draw() {
+            drawPolygon({
+                //pos: this.pos,
+                pts: [
+                    Vec2.fromAngle(30).scale(r),
+                    Vec2.fromAngle(90).scale(r),
+                    Vec2.fromAngle(150).scale(r),
+                    Vec2.fromAngle(210).scale(r),
+                    Vec2.fromAngle(270).scale(r),
+                    Vec2.fromAngle(330).scale(r),
+                ],
+                //color: rgb(w(128, 255, 8), 255, w(128, 255, 4)),
+                outline: {
+                    width: 1,
+                    color: rgb(0, 0, 0),
+                },
+            })
+        },
+    }
+}
+
+function hexX(x, y, r) {
+    if(y % 2) {
+        x += 0.5
+    }
+    return hexWidth(r) * x
+}
+function hexY(x, y, r) {
+    return (hexRightUp*r + r)*y
+}
+
+function hexgrid(r, h, w) {
+    let hexpts = [
+            Vec2.fromAngle(30).scale(r),
+            Vec2.fromAngle(90).scale(r),
+            Vec2.fromAngle(150).scale(r),
+            Vec2.fromAngle(210).scale(r),
+            Vec2.fromAngle(270).scale(r),
+            Vec2.fromAngle(330).scale(r),
+        ]
+    let hexlinepts = [
+            Vec2.fromAngle(30).scale(r),
+            Vec2.fromAngle(90).scale(r),
+            Vec2.fromAngle(150).scale(r),
+            Vec2.fromAngle(210).scale(r),
+            //Vec2.fromAngle(270).scale(r),
+            //Vec2.fromAngle(330).scale(r),
+            //Vec2.fromAngle(30).scale(r),
+        ]
+    let outline = {
+            width: 1,
+            color: rgb(0, 0, 0),
+        }
+    let colors = []
+    for(let i = 0; i < h*w; i++) {
+        colors[i] = rgb(200 + randi(55),200 + randi(55),200 + randi(55))
+    }
+    return {
+        draw() {
+            let border = vec2(1,1).scale(r*curScale)
+            let screenRect = new Rect(toWorld(vec2(0,0).sub(border)), toWorld(vec2(width(),height()).add(border)))
+            let firstX = Math.max(Math.floor(toWorld(vec2(0,0)).x / (2*hexRight*r)), 0)
+            let firstY = Math.max(Math.floor(toWorld(vec2(0,0)).y / (r + hexRightUp*r)), 0)
+            let lastX = Math.min(Math.ceil(toWorld(vec2(width(),height())).x / (2*hexRight*r)), w-1)
+            let lastY = Math.min(Math.ceil(toWorld(vec2(width(),height())).y / (r + hexRightUp*r)), h-1)
+
+            //console.log("m x " + firstX + " " + lastX + " y " + firstY + " " + lastY)
+
+            let efx = 999
+            let efy = 999
+            let elx = -999
+            let ely = -999
+
+            for(let x = firstX; x <= lastX; x++) {
+                for(let y = firstY; y <= lastY; y++) {
+                    //let newPos = vec2(hexX(x,y,r),hexY(x,y,r))
+                    //pushTransform()
+                    //pushTranslate(newPos)
+                    //if(testRectPoint(screenRect, newPos)) {
+                        drawPolygon({
+                            pos : vec2(hexX(x,y,r),hexY(x,y,r)),
+                            pts : hexpts,
+                            //outline,
+                            color: colors[x+y*w],
+                        })
+                        //drawLines({
+                        //    pts : hexlinepts,
+                        //    width : 1,
+                        //    color : BLACK,
+                        //})
+                    //    if(x < efx) {efx = x}
+                    //    if(x > elx) {elx = x}
+                    //    if(y < efy) {efy = y}
+                    //    if(y > ely) {ely = y}
+                    //}
+                    //popTransform()
+                }
+            }
+
+            //console.log("e x " + efx + " " + elx + " y " + efy + " " + ely)
+        }
+    }
+}
+
+// toggle fullscreen mode on "f"
+onKeyPress("f", (c) => {
+    fullscreen(!isFullscreen())
+})
+
+onMouseRelease((mousePos) => {
+    justStartedDraggin = curDraggin == null
+})
+
+camScale(curScale);
+
+//// doesn't work, don't know why
+// onMousePress("forward", () => {
+//     curScale += 0.5;
+//     camScale(curScale);
+// })
+
+onMousePress("middle", () => {
+    camDragStartWorld = mousePos()
+    camDragStartScreen = camPos()
+})
+
+onMouseDown("middle", () => {
+    let newMousePos = mousePos()
+    let worldOffset = newMousePos.sub(camDragStartWorld).scale(1 / curScale) //.scale(camScale())
+    camPos(camDragStartScreen.sub(worldOffset))
+})
+
+layers([
+    "map",
+    "objects",
+])
+
+// add a piece of text at position (120, 80)
+add([
+    sprite("lich"),
+    area(),
+    drag(),
+//    scale(2),
+    pos(60, 160),
+//    origin("bot"),
+    origin(vec2(0,0.66666)),
+    layer("objects"),
+]);
+
+add([
+    hexgrid(20, 100, 100),
+    layer("map"),
+    scale(1, 1),
+]);
+
+
+//for(let x = 0; x < 10; x++) {
+//    for(let y = 0; y < 10; y++) {
+//        add([
+//            //rect(50,40),
+//            hex(20),
+//            area(),
+//            outline(1),
+//            slot(),
+//            scale(1,1),
+//            pos(100 + hexX(x,y,20),40 + hexY(x,y,20)),
+//            origin("center"),
+//        ]);
+//    }
+//}
+camPos(250, 120);
+
+</script>
