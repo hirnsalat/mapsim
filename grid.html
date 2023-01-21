@@ -5,7 +5,12 @@
 import kaboom from "./kaboom.mjs";
 
 // initialize kaboom context
-kaboom();
+kaboom({
+    crisp : false,
+    letterbox : true,
+    width : 640,
+    height : 480,
+});
 
 // load shit
 loadSprite("lich", "HORUS-LICH.png")
@@ -13,7 +18,7 @@ loadSprite("lich", "HORUS-LICH.png")
 // globals
 let curDraggin = null
 let justStartedDraggin = true
-let curScale = 2
+let curScale = 1
 let camDragStartWorld = null
 let camDragStartScreen = null
 let hexTop = 1
@@ -111,75 +116,82 @@ function hexY(x, y, r) {
     return (hexRightUp*r + r)*y
 }
 
-function hexgrid(r, h, w) {
+function hexgrid(hexw, hexh, h, w) {
+    let shiftx = hexw
+    let shifty = hexh * 3/4
     let hexpts = [
-            Vec2.fromAngle(30).scale(r),
-            Vec2.fromAngle(90).scale(r),
-            Vec2.fromAngle(150).scale(r),
-            Vec2.fromAngle(210).scale(r),
-            Vec2.fromAngle(270).scale(r),
-            Vec2.fromAngle(330).scale(r),
+            vec2(0,-hexh/2),
+            vec2(hexw/2, -hexh/4),
+            vec2(hexw/2, hexh/4),
+            vec2(0, hexh/2),
+            vec2(-hexw/2, hexh/4),
+            vec2(-hexw/2, -hexh/4),
         ]
-    let hexlinepts = [
-            Vec2.fromAngle(30).scale(r),
-            Vec2.fromAngle(90).scale(r),
-            Vec2.fromAngle(150).scale(r),
-            Vec2.fromAngle(210).scale(r),
-            //Vec2.fromAngle(270).scale(r),
-            //Vec2.fromAngle(330).scale(r),
-            //Vec2.fromAngle(30).scale(r),
+    let side1points = [
+            vec2(0, hexh/2),
+            vec2(-hexw/2, hexh/4),
+            vec2(-hexw/2, hexh/2),
+            vec2(0, hexh/2 + hexh/4),
+        ]
+    let side2points = [
+            vec2(hexw/2, hexh/4),
+            vec2(0, hexh/2),
+            vec2(0, hexh/2 + hexh/4),
+            vec2(hexw/2, hexh/2),
         ]
     let outline = {
             width: 1,
             color: rgb(0, 0, 0),
         }
+
     let colors = []
+    let shades1 = []
+    let shades2 = []
     for(let i = 0; i < h*w; i++) {
-        colors[i] = rgb(200 + randi(55),200 + randi(55),200 + randi(55))
+        let hue = rand()
+        colors[i] = hsl2rgb(hue,0.2,0.9)
+        shades1[i] = hsl2rgb(hue,0.2,0.6)
+        shades2[i] = hsl2rgb(hue,0.2,0.7)
     }
+    let shifts = []
+    for(let i = 0; i < h*w; i++) {
+        shifts[i] = randi(hexh/8)
+    }
+
     return {
         draw() {
-            let border = vec2(1,1).scale(r*curScale)
+            let border = vec2(hexw,hexh)
             let screenRect = new Rect(toWorld(vec2(0,0).sub(border)), toWorld(vec2(width(),height()).add(border)))
-            let firstX = Math.max(Math.floor(toWorld(vec2(0,0)).x / (2*hexRight*r)), 0)
-            let firstY = Math.max(Math.floor(toWorld(vec2(0,0)).y / (r + hexRightUp*r)), 0)
-            let lastX = Math.min(Math.ceil(toWorld(vec2(width(),height())).x / (2*hexRight*r)), w-1)
-            let lastY = Math.min(Math.ceil(toWorld(vec2(width(),height())).y / (r + hexRightUp*r)), h-1)
+            let firstX = Math.max(Math.floor(toWorld(vec2(0,0)).x / shiftx), 0)
+            let firstY = Math.max(Math.floor(toWorld(vec2(0,0)).y / shifty), 0)
+            let lastX = Math.min(Math.ceil(toWorld(vec2(width(),height())).x / shiftx), w-1)
+            let lastY = Math.min(Math.ceil(toWorld(vec2(width(),height())).y / shifty), h-1)
 
-            //console.log("m x " + firstX + " " + lastX + " y " + firstY + " " + lastY)
-
-            let efx = 999
-            let efy = 999
-            let elx = -999
-            let ely = -999
-
-            for(let x = firstX; x <= lastX; x++) {
-                for(let y = firstY; y <= lastY; y++) {
-                    //let newPos = vec2(hexX(x,y,r),hexY(x,y,r))
-                    //pushTransform()
-                    //pushTranslate(newPos)
-                    //if(testRectPoint(screenRect, newPos)) {
-                        drawPolygon({
-                            pos : vec2(hexX(x,y,r),hexY(x,y,r)),
-                            pts : hexpts,
-                            outline,
-                            color: colors[x+y*w],
-                        })
-                        //drawLines({
-                        //    pts : hexlinepts,
-                        //    width : 1,
-                        //    color : BLACK,
-                        //})
-                    //    if(x < efx) {efx = x}
-                    //    if(x > elx) {elx = x}
-                    //    if(y < efy) {efy = y}
-                    //    if(y > ely) {ely = y}
-                    //}
-                    //popTransform()
+            for(let y = firstY; y <= lastY; y++) {
+                for(let x = firstX; x <= lastX; x++) {
+                    let shift = wave(0,hexh/8,time() + shifts[x+y*w])
+                    let hexpos = vec2(shiftx*(x + (y%2)*0.5),shifty*y + shift)
+                    drawPolygon({
+                        pos : hexpos,
+                        pts : side1points,
+                        outline,
+                        color: shades1[x+y*w],
+                    })
+                    drawPolygon({
+                        pos : hexpos,
+                        pts : side2points,
+                        outline,
+                        color: shades2[x+y*w],
+                    })
+                    drawPolygon({
+                        pos : hexpos,
+                        pts : hexpts,
+                        outline,
+                        color: colors[x+y*w],
+                    })
                 }
             }
 
-            //console.log("e x " + efx + " " + elx + " y " + efy + " " + ely)
         }
     }
 }
@@ -217,20 +229,20 @@ layers([
     "objects",
 ])
 
-// add a piece of text at position (120, 80)
-add([
-    sprite("lich"),
-    area(),
-    drag(),
-//    scale(2),
-    pos(60, 160),
-//    origin("bot"),
-    origin(vec2(0,0.66666)),
-    layer("objects"),
-]);
+//add([
+//    sprite("lich"),
+//    area(),
+//    drag(),
+//    scale(0.2),
+//    pos(60, 160),
+////    origin("bot"),
+//    origin(vec2(0,0.75)),
+//    layer("objects"),
+//    hidden(),
+//]);
 
 add([
-    hexgrid(20, 100, 100),
+    hexgrid(80,80, 100, 100),
     layer("map"),
     scale(1, 1),
 ]);
@@ -250,6 +262,6 @@ add([
 //        ]);
 //    }
 //}
-camPos(250, 120);
+camPos(400, 400);
 
 </script>
