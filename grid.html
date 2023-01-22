@@ -80,32 +80,6 @@ function hexWidth(r) {
     return r * hexRight * 2
 }
 
-function hex(r) {
-    let w = hexWidth(r)
-    return {
-        width : w,
-        height : r*2,
-        draw() {
-            drawPolygon({
-                //pos: this.pos,
-                pts: [
-                    Vec2.fromAngle(30).scale(r),
-                    Vec2.fromAngle(90).scale(r),
-                    Vec2.fromAngle(150).scale(r),
-                    Vec2.fromAngle(210).scale(r),
-                    Vec2.fromAngle(270).scale(r),
-                    Vec2.fromAngle(330).scale(r),
-                ],
-                //color: rgb(w(128, 255, 8), 255, w(128, 255, 4)),
-                outline: {
-                    width: 1,
-                    color: rgb(0, 0, 0),
-                },
-            })
-        },
-    }
-}
-
 function hexX(x, y, r) {
     if(y % 2) {
         x += 0.5
@@ -144,19 +118,45 @@ function hexgrid(hexw, hexh, h, w) {
             color: rgb(0, 0, 0),
         }
 
-    let colors = []
-    let shades1 = []
-    let shades2 = []
-    for(let i = 0; i < h*w; i++) {
+    let inithex = () => {
         let hue = rand()
-        colors[i] = hsl2rgb(hue,0.2,0.9)
-        shades1[i] = hsl2rgb(hue,0.2,0.6)
-        shades2[i] = hsl2rgb(hue,0.2,0.7)
+
+        return {
+            color :  hsl2rgb(hue,0.2,0.9),
+            shade1 : hsl2rgb(hue,0.2,0.6),
+            shade2 : hsl2rgb(hue,0.2,0.7),
+            shift :  randi(hexh/8),
+        }
     }
-    let shifts = []
+
+    let drawhex = (x, y, hex) => {
+        let shift = wave(0,hexh/8,time() + hex.shift)
+        let hexpos = vec2(shiftx*(x + (y%2)*0.5),shifty*y + shift)
+        drawPolygon({
+            pos : hexpos,
+            pts : side1points,
+            outline,
+            color: hex.shade1,
+        })
+        drawPolygon({
+            pos : hexpos,
+            pts : side2points,
+            outline,
+            color: hex.shade2,
+        })
+        drawPolygon({
+            pos : hexpos,
+            pts : hexpts,
+            outline,
+            color: hex.color,
+        })
+    }
+
+    let hexes = []
     for(let i = 0; i < h*w; i++) {
-        shifts[i] = randi(hexh/8)
+        hexes[i] = inithex()
     }
+
 
     return {
         draw() {
@@ -169,26 +169,7 @@ function hexgrid(hexw, hexh, h, w) {
 
             for(let y = firstY; y <= lastY; y++) {
                 for(let x = firstX; x <= lastX; x++) {
-                    let shift = wave(0,hexh/8,time() + shifts[x+y*w])
-                    let hexpos = vec2(shiftx*(x + (y%2)*0.5),shifty*y + shift)
-                    drawPolygon({
-                        pos : hexpos,
-                        pts : side1points,
-                        outline,
-                        color: shades1[x+y*w],
-                    })
-                    drawPolygon({
-                        pos : hexpos,
-                        pts : side2points,
-                        outline,
-                        color: shades2[x+y*w],
-                    })
-                    drawPolygon({
-                        pos : hexpos,
-                        pts : hexpts,
-                        outline,
-                        color: colors[x+y*w],
-                    })
+                    drawhex(x, y, hexes[x+y*w])
                 }
             }
 
@@ -196,10 +177,11 @@ function hexgrid(hexw, hexh, h, w) {
     }
 }
 
-// toggle fullscreen mode on "f"
-onKeyPress("f", (c) => {
-    fullscreen(!isFullscreen())
-})
+//// fullscreen mode breaks mouse :(
+//// toggle fullscreen mode on "f"
+//onKeyPress("f", (c) => {
+//    fullscreen(!isFullscreen())
+//})
 
 onMouseRelease((mousePos) => {
     justStartedDraggin = curDraggin == null
@@ -244,24 +226,8 @@ layers([
 add([
     hexgrid(80,80, 100, 100),
     layer("map"),
-    scale(1, 1),
 ]);
 
-
-//for(let x = 0; x < 10; x++) {
-//    for(let y = 0; y < 10; y++) {
-//        add([
-//            //rect(50,40),
-//            hex(20),
-//            area(),
-//            outline(1),
-//            slot(),
-//            scale(1,1),
-//            pos(100 + hexX(x,y,20),40 + hexY(x,y,20)),
-//            origin("center"),
-//        ]);
-//    }
-//}
 camPos(400, 400);
 
 </script>
