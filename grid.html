@@ -90,6 +90,28 @@ function hexY(x, y, r) {
     return (hexRightUp*r + r)*y
 }
 
+function hexToIndex(q, r) {
+    let s = -q-r
+    let dist = Math.max(Math.abs(q), Math.abs(r), Math.abs(s))
+    let distOffset = 1+ 3 * dist * (dist-1)
+
+    if(dist == 0) return 0
+
+    if(q == dist) {
+        return distOffset -s
+    } else if(s == -dist) {
+        return distOffset + dist + r
+    } else if(r == dist) {
+        return distOffset + 2*dist -q
+    } else if(q == -dist) {
+        return distOffset + 3*dist +s
+    } else if(s == dist) {
+        return distOffset + 4*dist -r
+    } else if(r == -dist) {
+        return distOffset + 5*dist +q
+    }
+}
+
 function hexgrid(hexw, hexh, h, w) {
     let shiftx = hexw
     let shifty = hexh * 3/4
@@ -126,6 +148,7 @@ function hexgrid(hexw, hexh, h, w) {
             shade1 : hsl2rgb(hue,0.2,0.6),
             shade2 : hsl2rgb(hue,0.2,0.7),
             shift :  randi(hexh/8),
+            //name : hexToIndex(x - Math.floor(y/2), y),
         }
     }
 
@@ -150,6 +173,12 @@ function hexgrid(hexw, hexh, h, w) {
             outline,
             color: hex.color,
         })
+        //drawText({
+        //    pos : hexpos,
+        //    text : hex.name,
+        //    size : 30,
+        //    origin : "center",
+        //})
     }
 
     let hexes = []
@@ -218,6 +247,7 @@ let infotext = add([
     text("hi"),
 ]);
 
+
 onMouseMove((mousePos) => {
     mousePos = toWorld(mousePos)
     let fr = mousePos.y / 60 // hexh * 3/4
@@ -240,7 +270,7 @@ onMouseMove((mousePos) => {
         s = -q-r
     }
 
-    infotext.text = q + "," + r + "," + s
+    infotext.text = q + "," + r + "," + s + ":" + hexToIndex(q,r)
 })
 
 //add([
