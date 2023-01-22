@@ -211,6 +211,38 @@ layers([
     "objects",
 ])
 
+let infotext = add([
+    layer("objects"),
+    pos(0, 0),
+    fixed(),
+    text("hi"),
+]);
+
+onMouseMove((mousePos) => {
+    mousePos = toWorld(mousePos)
+    let fr = mousePos.y / 60 // hexh * 3/4
+    let fq = mousePos.x / 80 - fr / 2 // hexh
+    let fs = -fq - fr
+
+    let q = Math.round(fq)
+    let r = Math.round(fr)
+    let s = Math.round(fs)
+
+    let q_diff = Math.abs(q - fq)
+    let r_diff = Math.abs(r - fr)
+    let s_diff = Math.abs(s - fs)
+
+    if (q_diff > r_diff && q_diff > s_diff) {
+        q = -r-s
+    } else if (r_diff > s_diff) {
+        r = -q-s
+    } else {
+        s = -q-r
+    }
+
+    infotext.text = q + "," + r + "," + s
+})
+
 //add([
 //    sprite("lich"),
 //    area(),
@@ -228,6 +260,6 @@ add([
     layer("map"),
 ]);
 
-camPos(400, 400);
+camPos(0, 0);
 
 </script>
