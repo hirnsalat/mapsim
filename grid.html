@@ -13,12 +13,12 @@ kaboom({
 });
 
 // load shit
-loadSprite("lich", "HORUS-LICH.png")
+loadSprite("tile", "tile.png")
 
 // globals
 let curDraggin = null
 let justStartedDraggin = true
-let curScale = 1
+let curScale = 2
 let camDragStartWorld = null
 let camDragStartScreen = null
 let hexTop = 1
@@ -92,8 +92,8 @@ function hexY(x, y, r) {
 }
 
 function worldToHex(pos) {
-    let fr = pos.y / 60 // hexh * 3/4
-    let fq = pos.x / 80 - fr / 2 // hexh
+    let fr = pos.y / 24 // hexh * 3/4
+    let fq = pos.x / 32 - fr / 2 // hexh
     let fs = -fq - fr
 
     let q = Math.round(fq)
@@ -116,8 +116,8 @@ function worldToHex(pos) {
 }
 
 function hexToWorld(q, r) {
-    let y = r * 60 // hexh * 3/4, shifty
-    let x = q * 80 + r * 40 // hexw, hexw/2
+    let y = r * 24 // hexh * 3/4, shifty
+    let x = q * 32 + r * 16 // hexw, hexw/2
     return vec2(x,y)
 }
 
@@ -147,9 +147,117 @@ function hexToIndex(q, r) {
     }
 }
 
-function hexgrid(hexw, hexh, initHexes) {
+function hexgrid(hexh, hexw, initHexes) {
     let shiftx = hexw
     let shifty = hexh * 3/4
+
+
+    function inithex(n) {
+        let hue = rand()
+
+        return {
+            color :  hsl2rgb(hue,0.2,0.9),
+            shade1 : hsl2rgb(hue,0.2,0.6),
+            shade2 : hsl2rgb(hue,0.2,0.7),
+            shift :  randi(hexh/8),
+            name : n,
+        }
+    }
+
+    function worldToHex(pos) {
+        let fr = pos.y / shifty
+        let fq = pos.x / shiftx - fr / 2
+        let fs = -fq - fr
+    
+        let q = Math.round(fq)
+        let r = Math.round(fr)
+        let s = Math.round(fs)
+    
+        let q_diff = Math.abs(q - fq)
+        let r_diff = Math.abs(r - fr)
+        let s_diff = Math.abs(s - fs)
+    
+        if (q_diff > r_diff && q_diff > s_diff) {
+            q = -r-s
+        } else if (r_diff > s_diff) {
+            r = -q-s
+        } else {
+            s = -q-r
+        }
+    
+        return vec2(q,r)
+    }
+    
+    function hexToWorld(q, r) {
+        let y = r * shifty
+        let x = q * shiftx + r * shiftx/2
+        return vec2(x,y)
+    }
+
+
+    let hexes = []
+    for(let i = 0; i < initHexes; i++) {
+        hexes[i] = inithex(i)
+    }
+
+
+    return {
+        getCoords(pos) {
+            return worldToHex(pos)
+        },
+
+        draw() {
+            let screenStartInHex = screenToHex(vec2(0,0))
+            let screenEndInHex = screenToHex(vec2(width(),0))
+            let screenEndInHex2 = screenToHex(vec2(width(),height()))
+            let qstart = screenStartInHex.x
+            let qend = screenEndInHex.x + 2 // todo: improve with fractional coords
+            let rstart = screenStartInHex.y -1
+            let rend = screenEndInHex2.y
+            let hexpos = null
+            let hexidx = 0
+            let r = rstart
+
+            for(let r = rstart; r <= rend; r++) {
+                if(r % 2) {
+                    qstart--; qend--;
+                }
+                for(let q = qstart; q <= qend; q++) {
+                    hexidx = hexToIndex(q,r)
+                    if(hexes[hexidx]) {
+                        hexpos = hexToWorld(q,r)
+                        this.drawHex(hexpos.x, hexpos.y, hexes[hexidx])
+                    }
+                }
+            }
+
+        }
+    }
+}
+
+function hexSprites(spriteName) {
+    return {
+        drawHex(x,y,hex) {
+            let hexpos = vec2(x,y + hex.shift)
+            drawSprite({
+                pos : hexpos,
+                sprite : spriteName,
+                origin : "center",
+                color : hex.color,
+            })
+            if(drawName) {
+                drawText({
+                    pos : hexpos,
+                    text : hex.name,
+                    size : 12,
+                    origin : "center",
+                })
+            }
+        }
+    }
+}
+
+function hexPolys(hexh, hexw) {
     let hexpts = [
             vec2(0,-hexh/2),
             vec2(hexw/2, -hexh/4),
@@ -174,86 +282,41 @@ function hexgrid(hexw, hexh, initHexes) {
             width: 1,
             color: rgb(0, 0, 0),
         }
-
-    function inithex(n) {
-        let hue = rand()
-
-        return {
-            color :  hsl2rgb(hue,0.2,0.9),
-            shade1 : hsl2rgb(hue,0.2,0.6),
-            shade2 : hsl2rgb(hue,0.2,0.7),
-            shift :  randi(hexh/8),
-            name : n,
-        }
-    }
-
-    function drawhex(x, y, hex) {
-        let shift = wave(0,hexh/8,time() + hex.shift)
-        //let hexpos = vec2(shiftx*(x + (y%2)*0.5),shifty*y + shift)
-        let hexpos = vec2(x,y + shift)
-        drawPolygon({
-            pos : hexpos,
-            pts : side1points,
-            outline,
-            color: hex.shade1,
-        })
-        drawPolygon({
-            pos : hexpos,
-            pts : side2points,
-            outline,
-            color: hex.shade2,
-        })
-        drawPolygon({
-            pos : hexpos,
-            pts : hexpts,
-            outline,
-            color: hex.color,
-        })
-        if(drawName) {
-            drawText({
-                pos : hexpos,
-                text : hex.name,
-                size : 30,
-                origin : "center",
-            })
-        }
-    }
-
-    let hexes = []
-    for(let i = 0; i < initHexes; i++) {
-        hexes[i] = inithex(i)
-    }
-
-
     return {
-        draw() {
-            let screenStartInHex = screenToHex(vec2(0,0))
-            let screenEndInHex = screenToHex(vec2(width(),0))
-            let screenEndInHex2 = screenToHex(vec2(width(),height()))
-            let qstart = screenStartInHex.x
-            let qend = screenEndInHex.x + 2 // todo: improve with fractional coords
-            let rstart = screenStartInHex.y -1
-            let rend = screenEndInHex2.y
-            let hexpos = null
-            let hexidx = 0
-            let r = rstart
+        drawHex(x, y, hex) {
+            let shift = wave(0,hexh/8,time() + hex.shift)
+            let hexpos = vec2(x,y + shift)
 
-            for(let r = rstart; r <= rend; r++) {
-                if(r % 2) {
-                    qstart--; qend--;
-                }
-                for(let q = qstart; q <= qend; q++) {
-                    hexidx = hexToIndex(q,r)
-                    if(hexes[hexidx]) {
-                        hexpos = hexToWorld(q,r)
-                        drawhex(hexpos.x, hexpos.y, hexes[hexidx])
-                    }
-                }
+            drawPolygon({
+                pos : hexpos,
+                pts : side1points,
+                outline,
+                color: hex.shade1,
+            })
+            drawPolygon({
+                pos : hexpos,
+                pts : side2points,
+                outline,
+                color: hex.shade2,
+            })
+            drawPolygon({
+                pos : hexpos,
+                pts : hexpts,
+                outline,
+                color: hex.color,
+            })
+            if(drawName) {
+                drawText({
+                    pos : hexpos,
+                    text : hex.name,
+                    size : hexh/3,
+                    origin : "center",
+                })
             }
-
         }
     }
 }
+
 
 //// fullscreen mode breaks mouse :(
 //// toggle fullscreen mode on "f"
@@ -300,9 +363,16 @@ let infotext = add([
     text("hi"),
 ]);
 
+let daGrid = add([
+    hexgrid(32,32, 2791), //169), // for radius 30: 2791
+    //hexPolys(32,32),
+    hexSprites("tile"),
+    layer("map"),
+]);
+
 
 onMouseMove((mousePos) => {
-    let posInHex = screenToHex(mousePos)
+    let posInHex = daGrid.getCoords(toWorld(mousePos))
 
     let q = posInHex.x
     let r = posInHex.y
@@ -323,10 +393,6 @@ onMouseMove((mousePos) => {
 //    hidden(),
 //]);
 
-add([
-    hexgrid(80,80, 169), // for radius 30: 2791
-    layer("map"),
-]);
 
 camPos(0, 0);
 
