@@ -21,9 +21,6 @@ let justStartedDraggin = true
 let curScale = 2
 let camDragStartWorld = null
 let camDragStartScreen = null
-let hexTop = 1
-let hexRight = Vec2.fromAngle(30).x
-let hexRightUp = Vec2.fromAngle(30).y
 let drawName = false
 
 // A custom component for handling drag & drop behavior
@@ -75,54 +72,6 @@ function slot() {
             })
         },
     }
-}
-
-function hexWidth(r) {
-    return r * hexRight * 2
-}
-
-function hexX(x, y, r) {
-    if(y % 2) {
-        x += 0.5
-    }
-    return hexWidth(r) * x
-}
-function hexY(x, y, r) {
-    return (hexRightUp*r + r)*y
-}
-
-function worldToHex(pos) {
-    let fr = pos.y / 24 // hexh * 3/4
-    let fq = pos.x / 32 - fr / 2 // hexh
-    let fs = -fq - fr
-
-    let q = Math.round(fq)
-    let r = Math.round(fr)
-    let s = Math.round(fs)
-
-    let q_diff = Math.abs(q - fq)
-    let r_diff = Math.abs(r - fr)
-    let s_diff = Math.abs(s - fs)
-
-    if (q_diff > r_diff && q_diff > s_diff) {
-        q = -r-s
-    } else if (r_diff > s_diff) {
-        r = -q-s
-    } else {
-        s = -q-r
-    }
-
-    return vec2(q,r)
-}
-
-function hexToWorld(q, r) {
-    let y = r * 24 // hexh * 3/4, shifty
-    let x = q * 32 + r * 16 // hexw, hexw/2
-    return vec2(x,y)
-}
-
-function screenToHex(pos) {
-    return worldToHex(toWorld(pos))
 }
 
 function hexToIndex(q, r) {
@@ -186,6 +135,10 @@ function hexgrid(hexh, hexw, initHexes) {
         }
     
         return vec2(q,r)
+    }
+
+    function screenToHex(pos) {
+        return worldToHex(toWorld(pos))
     }
     
     function hexToWorld(q, r) {
@@ -364,7 +317,7 @@ let infotext = add([
 ]);
 
 let daGrid = add([
-    hexgrid(32,32, 2791), //169), // for radius 30: 2791
+    hexgrid(32,32, 169), // for radius 30: 2791
     //hexPolys(32,32),
     hexSprites("tile"),
     layer("map"),
