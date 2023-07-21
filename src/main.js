@@ -1,8 +1,5 @@
-<!DOCTYPE html>
-<script type="module">
-
 // import kaboom lib
-import kaboom from "./kaboom.mjs";
+import kaboom from "kaboom";
 
 // initialize kaboom context
 kaboom({
@@ -304,23 +301,24 @@ onMouseDown("middle", () => {
     camPos(camDragStartScreen.sub(worldOffset))
 })
 
-layers([
-    "map",
-    "objects",
-])
+//layers([
+//    "map",
+//    "objects",
+//])
 
 let infotext = add([
-    layer("objects"),
+//    layer("objects"),
     pos(0, 0),
     fixed(),
     text("hi"),
+    z(9000),
 ]);
 
 let daGrid = add([
     hexgrid(32,32, 169), // for radius 30: 2791
     //hexPolys(32,32),
     hexSprites("tile"),
-    layer("map"),
+//    layer("map"),
 ]);
 
 
@@ -349,4 +347,3 @@ onMouseMove((mousePos) => {
 
 camPos(0, 0);
 
-</script>
